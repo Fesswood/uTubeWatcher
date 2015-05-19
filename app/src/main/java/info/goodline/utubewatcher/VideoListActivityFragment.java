@@ -2,6 +2,7 @@ package info.goodline.utubewatcher;
 
 import android.content.Context;
 import android.content.Intent;
+import android.net.sip.SipSession;
 import android.os.Handler;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
@@ -27,19 +28,19 @@ import info.goodline.utubewatcher.Model.VideoItem;
 import info.goodline.utubewatcher.Util.UtubeDataConnector;
 
 
-/**
- * A placeholder fragment containing a simple view.
- */
+
 public class VideoListActivityFragment extends Fragment {
 
     private EditText mSearchInput;
     private ListView mVideosFound;
 
+    private String mQueryString;
     private Handler mHandler;
+    private List<VideoItem> mSearchResults;
 
     public static final String VIDEO_ID_TAG="VideoListActivityFragment.videoID";
+    public static final String VIDEO_QUERY_TAG="mQueryString";
 
-    private List<VideoItem> mSearchResults;
 
     @Override
     public void onActivityCreated(@Nullable Bundle savedInstanceState) {
@@ -48,13 +49,12 @@ public class VideoListActivityFragment extends Fragment {
 
         mSearchInput = (EditText)getView().findViewById(R.id.search_input);
         mVideosFound = (ListView)getView().findViewById(R.id.videos_found);
-
         mHandler = new Handler();
 
-        mSearchInput.setOnEditorActionListener(new TextView.OnEditorActionListener() {
+         mSearchInput.setOnEditorActionListener(new TextView.OnEditorActionListener() {
             @Override
             public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
-                if (actionId == EditorInfo.IME_ACTION_SEARCH ||
+                if(actionId == EditorInfo.IME_ACTION_SEARCH ||
                         actionId == EditorInfo.IME_ACTION_DONE ||
                         event.getAction() == KeyEvent.ACTION_DOWN &&
                                 event.getKeyCode() == KeyEvent.KEYCODE_ENTER) {
@@ -66,6 +66,13 @@ public class VideoListActivityFragment extends Fragment {
         });
         addClickListener();
 
+
+        if (savedInstanceState != null){
+            mQueryString = savedInstanceState.getString(VIDEO_QUERY_TAG);
+        }
+        searchOnYoutube(mQueryString);
+
+
     }
 
     @Override
@@ -74,12 +81,16 @@ public class VideoListActivityFragment extends Fragment {
         return inflater.inflate(R.layout.fragment_video_list, container, false);
     }
 
-    private void searchOnYoutube(final String keywords){
+    private void searchOnYoutube(@Nullable final String keywords){
         final FragmentActivity activity = getActivity();
         new Thread(){
             public void run(){
                 UtubeDataConnector tubeCon = new UtubeDataConnector(activity);
-                mSearchResults = tubeCon.search(keywords);
+                if (keywords==null){
+                    mSearchResults = tubeCon.showLastVideo();
+                }else{
+                    mSearchResults = tubeCon.search(keywords);
+                }
                 mHandler.post(new Runnable() {
                     public void run() {
                         updateVideosFound();
@@ -88,6 +99,8 @@ public class VideoListActivityFragment extends Fragment {
             }
         }.start();
     }
+
+
 
     private void updateVideosFound(){
         ArrayAdapter<VideoItem> adapter = new ArrayAdapter<VideoItem>(getActivity().getApplicationContext(), R.layout.video_item, mSearchResults){
@@ -118,11 +131,19 @@ public class VideoListActivityFragment extends Fragment {
             @Override
             public void onItemClick(AdapterView<?> av, View v, int pos,
                                     long id) {
-                Intent intent = new Intent(cnxt, PlayerActivity.class);
+              /*  Intent intent = new Intent(cnxt, PlayerActivity.class);
                 intent.putExtra(VIDEO_ID_TAG, mSearchResults.get(pos).getId());
-                startActivity(intent);
+                startActivity(intent);*/
+                PlayerYouTubeFragment myFragment = PlayerYouTubeFragment.newInstance(mSearchResults.get(pos).getId());
+                getActivity().getSupportFragmentManager().beginTransaction().replace(R.id.video_container, myFragment).commit();
             }
 
         });
+    }
+    @Override
+    public void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+        outState.putString(VIDEO_QUERY_TAG,mQueryString);
+
     }
 }

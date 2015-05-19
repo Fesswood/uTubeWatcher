@@ -1,8 +1,6 @@
 package info.goodline.utubewatcher.Model;
 
-/**
- * Created by Балдин Сергей on 18.05.2015.
- */
+
 public class VideoItem {
     private String title;
     private String description;
