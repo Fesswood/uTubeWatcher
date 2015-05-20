@@ -1,12 +1,34 @@
 package info.goodline.utubewatcher.Model;
 
 
-public class VideoItem {
+import java.io.Serializable;
+import java.math.BigInteger;
+
+public class VideoItem implements Serializable{
     private String title;
     private String description;
-    private Long Date;
+    private long date;
+    private BigInteger viewCounts;
+    private String duration;
     private String thumbnailURL;
     private String id;
+
+
+    public BigInteger getViewCounts() {
+        return viewCounts;
+    }
+
+    public void setViewCounts(BigInteger viewCounts) {
+        this.viewCounts = viewCounts;
+    }
+
+    public String getDuration() {
+        return duration;
+    }
+
+    public void setDuration(String duration) {
+        this.duration = duration;
+    }
 
     public String getId() {
         return id;
@@ -41,6 +63,10 @@ public class VideoItem {
     }
 
     public void setDate(long date) {
-        this.Date = date;
+        this.date = date;
+    }
+
+    public long getDate() {
+        return date;
     }
 }

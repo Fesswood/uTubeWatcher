@@ -44,7 +44,7 @@ public class UtubeDataConnector {
 
     }
 
-    public List<VideoItem> search(String keywords){
+    public ArrayList<VideoItem> search(String keywords){
 
         try{
             query = youtube.search().list("id,snippet");
@@ -56,8 +56,8 @@ public class UtubeDataConnector {
             query.setQ(keywords);
             SearchListResponse response = query.execute();
             List<SearchResult> results = response.getItems();
+            ArrayList<VideoItem> items = new ArrayList<VideoItem>();
 
-            List<VideoItem> items = new ArrayList<VideoItem>();
             for(SearchResult result:results){
                 VideoItem item = new VideoItem();
                 item.setTitle(result.getSnippet().getTitle());
@@ -75,23 +75,25 @@ public class UtubeDataConnector {
     }
 
 
-    public List<VideoItem> showLastVideo() {
+    public ArrayList<VideoItem> showLastVideo() {
         try{
-            queryVideo = youtube.videos().list("id,snippet");
+            queryVideo = youtube.videos().list("id,snippet,contentDetails,statistics");
             queryVideo.setKey(DeveloperKey.DEVELOPER_KEY);
             queryVideo.setMaxResults(mtResultSetSize);
-            queryVideo.setFields("items(id,snippet/publishedAt,snippet/title,snippet/description,snippet/thumbnails/default/url)");
+
             queryVideo.setChart(mDefaultQuery);
             queryVideo.setRegionCode(LOCALE_RU);
             VideoListResponse response = queryVideo.execute();
             List<Video> results = response.getItems();
+            ArrayList<VideoItem> items = new ArrayList<VideoItem>();
 
-            List<VideoItem> items = new ArrayList<VideoItem>();
             for(Video result:results){
                 VideoItem item = new VideoItem();
                 item.setTitle(result.getSnippet().getTitle());
                 item.setDate(result.getSnippet().getPublishedAt().getValue());
                 item.setDescription(result.getSnippet().getDescription());
+                item.setDuration(timeHumanReadable(result.getContentDetails().getDuration()));
+                item.setViewCounts(result.getStatistics().getViewCount());
                 item.setThumbnailURL(result.getSnippet().getThumbnails().getDefault().getUrl());
                 item.setId(result.getId());
                 items.add(item);
@@ -101,5 +103,77 @@ public class UtubeDataConnector {
             Log.d(DEBUG_TAG, "Could not search: "+e);
             return new ArrayList<>();
         }
+    }
+    private String timeHumanReadable(String youtubeTimeFormat){
+    // Gets a PThhHmmMssS time and returns a hh:mm:ss time
+
+        String
+                temp = "",
+                hour = "",
+                minute = "",
+                second = "",
+                returnString;
+
+        // Starts in position 2 to ignore P and T characters
+        for (int i = 2; i < youtubeTimeFormat.length(); ++ i)
+        {
+            // Put current char in c
+            char c = youtubeTimeFormat.charAt(i);
+
+            // Put number in temp
+            if (c >= '0' && c <= '9')
+                temp = temp + c;
+            else
+            {
+                // Test char after number
+                switch (c)
+                {
+                    case 'H' : // Deal with hours
+                        // Puts a zero in the left if only one digit is found
+                        if (temp.length() == 1) temp = "0" + temp;
+
+                        // This is hours
+                        hour = temp;
+
+                        break;
+
+                    case 'M' : // Deal with minutes
+                        // Puts a zero in the left if only one digit is found
+                        if (temp.length() == 1) temp = "0" + temp;
+
+                        // This is minutes
+                        minute = temp;
+
+                        break;
+
+                    case  'S': // Deal with seconds
+                        // Puts a zero in the left if only one digit is found
+                        if (temp.length() == 1) temp = "0" + temp;
+
+                        // This is seconds
+                        second = temp;
+
+                        break;
+
+                } // switch (coffee)
+
+                // Restarts temp for the eventual next number
+                temp = "";
+
+            } // else
+
+        } // for
+
+        if (hour == "" && minute == "") // Only seconds
+            returnString = second + " c.";
+        else {
+            if (hour == "") // Minutes and seconds
+                returnString = minute + ":" + second;
+            else // Hours, minutes and seconds
+                returnString = hour + ":" + minute + ":" + second;
+        }
+
+        // Returns a string in hh:mm:ss format
+        return returnString;
     }
 }

@@ -6,75 +6,70 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.android.youtube.player.YouTubeInitializationResult;
 import com.google.android.youtube.player.YouTubePlayer;
 import com.google.android.youtube.player.YouTubePlayerFragment;
-import com.google.android.youtube.player.YouTubePlayerSupportFragment;
-import com.google.android.youtube.player.YouTubePlayerView;
 
-import info.goodline.utubewatcher.Util.DeveloperKey;
+import java.util.ArrayList;
 
-
-
-public class PlayerActivityFragment extends Fragment implements YouTubePlayer.OnInitializedListener {
+import info.goodline.utubewatcher.Model.VideoItem;
+import info.goodline.utubewatcher.VideoList.VideoListActivityFragment;
 
 
-    private YouTubePlayerFragment mYouTubeFragment;
-    private static final int RECOVERY_DIALOG_REQUEST = 1;
+public class PlayerActivityFragment extends Fragment {
 
-    @Override
-    public void onActivityCreated(Bundle savedInstanceState) {
-        super.onActivityCreated(savedInstanceState);
+    private static final String VIDEO_TAG = "VideoSaveState";
+    private VideoItem mVideoItem;
 
-       /* mYouTubeFragment = (YouTubePlayerFragment) getActivity().getFragmentManager().findFragmentById(R.id.youtubeplayerfragment);
-        mYouTubeFragment.initialize(DeveloperKey.DEVELOPER_KEY, this);*/
+    private TextView mVideoTitleBigTextView;
+    private TextView mTimeTextView         ;
+    private TextView mViewsCountTextView   ;
+
+    public PlayerActivityFragment() {
     }
 
     @Override
-    public void onCreate(Bundle bundle) {
-        super.onCreate(bundle);
-    }
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
 
-    @Override
-    public void onInitializationFailure(YouTubePlayer.Provider provider,
-                                        YouTubeInitializationResult errorReason) {
-        if (errorReason.isUserRecoverableError()) {
-            errorReason.getErrorDialog(getActivity(), RECOVERY_DIALOG_REQUEST).show();
-        } else {
-            String errorMessage = String.format(
-                    "There was an error initializing the YouTubePlayer (%1$s)",
-                    errorReason.toString());
-            Toast.makeText(getActivity(), errorMessage, Toast.LENGTH_LONG).show();
+        if (savedInstanceState != null) {
+            mVideoItem =(VideoItem) savedInstanceState.getSerializable(VIDEO_TAG);
+            if (mVideoItem == null ) {
+                mVideoItem=new VideoItem();
+            }
+        }else{
+            mVideoItem=new VideoItem();
         }
-       // Toast.makeText(getActivity(), getString(R.string.failed), Toast.LENGTH_LONG).show();
+
     }
 
-    @Override
-    public void onInitializationSuccess(YouTubePlayer.Provider provider, YouTubePlayer player,
-                                        boolean restored) {
-        if(!restored){
-            String videoId=getActivity().getIntent().getStringExtra(VideoListActivityFragment.VIDEO_ID_TAG);
-            player.cueVideo(videoId);
-        }
+    public VideoItem getmVideoItem() {
+        return mVideoItem;
+    }
+
+    public void setmVideoItem(VideoItem mVideoItem) {
+        this.mVideoItem = mVideoItem;
     }
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
-        return inflater.inflate(R.layout.fragment_player, container, false);
+        View view = inflater.inflate(R.layout.fragment_player, container, false);
+        mVideoTitleBigTextView =(TextView) view.findViewById(R.id.videoTitleBig);
+        mTimeTextView          =(TextView) view.findViewById(R.id.Time);
+        mViewsCountTextView    =(TextView) view.findViewById(R.id.viewsCount);
+        mVideoTitleBigTextView.setText(mVideoItem.getTitle());
+        mTimeTextView.setText(mVideoItem.getDuration());
+        mViewsCountTextView.setText("Число просмотров"+mVideoItem.getViewCounts());
+
+        return view;
     }
     @Override
-    public void onActivityResult(int requestCode, int resultCode, Intent data) {
-
-   /*     if (requestCode == RECOVERY_DIALOG_REQUEST) {
-            // Retry initialization if user performed a recovery action
-            getYouTubePlayerProvider().initialize(DeveloperKey.DEVELOPER_KEY, this);
-        }*/
+    public void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+        outState.putSerializable(VIDEO_TAG, mVideoItem);
     }
-
-   /* protected YouTubePlayer.Provider getYouTubePlayerProvider() {
-      *//*  return (YouTubePlayerView)getView().findViewById(R.id.youtubeplayerfragment);*//*
-    }*/
 }

@@ -1,8 +1,11 @@
 <resources>
     <string name="app_name">Последние Видеоролики с youtube.</string>
     <string name="hello_world">Hello world!</string>
-    <string name="search">Искать</string>
+    <string name="search">Введите название ролика</string>
     <string name="failed">Не удалось инициализировать плеер!</string>
     <string name="action_settings">Настройки</string>
     <string name="title_activity_player">PlayerActivity</string>
+    <string name="action_search">искать видео</string>
+    <string name="action_to_top">Пролистать наверх</string>
+    <string name="action_to_bottom">Пролистать Вниз</string>
 </resources>
