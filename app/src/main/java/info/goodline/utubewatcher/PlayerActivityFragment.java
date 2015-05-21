@@ -50,8 +50,11 @@ public class PlayerActivityFragment extends Fragment {
         return mVideoItem;
     }
 
-    public void setmVideoItem(VideoItem mVideoItem) {
-        this.mVideoItem = mVideoItem;
+    public void setVideoItem(VideoItem videoItem) {
+        this.mVideoItem = videoItem;
+        mVideoTitleBigTextView.setText(mVideoItem.getTitle());
+        mTimeTextView.setText(mVideoItem.getDuration());
+        mViewsCountTextView.setText("Число просмотров"+mVideoItem.getViewCounts());
     }
 
     @Override
@@ -61,15 +64,13 @@ public class PlayerActivityFragment extends Fragment {
         mVideoTitleBigTextView =(TextView) view.findViewById(R.id.videoTitleBig);
         mTimeTextView          =(TextView) view.findViewById(R.id.Time);
         mViewsCountTextView    =(TextView) view.findViewById(R.id.viewsCount);
-        mVideoTitleBigTextView.setText(mVideoItem.getTitle());
-        mTimeTextView.setText(mVideoItem.getDuration());
-        mViewsCountTextView.setText("Число просмотров"+mVideoItem.getViewCounts());
+
 
         return view;
     }
     @Override
     public void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
-        outState.putSerializable(VIDEO_TAG, mVideoItem);
+
     }
 }

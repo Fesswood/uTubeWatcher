@@ -15,7 +15,6 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.animation.BounceInterpolator;
 import android.view.inputmethod.EditorInfo;
 import android.widget.AdapterView;
 import android.widget.LinearLayout;
@@ -28,17 +27,15 @@ import com.github.pedrovgs.DraggableListener;
 import com.github.pedrovgs.DraggablePanel;
 import com.google.android.youtube.player.YouTubeInitializationResult;
 import com.google.android.youtube.player.YouTubePlayer;
-import com.google.android.youtube.player.YouTubePlayerFragment;
 import com.google.android.youtube.player.YouTubePlayerSupportFragment;
 import com.rengwuxian.materialedittext.MaterialEditText;
-import com.squareup.picasso.Picasso;
 
 import java.util.ArrayList;
 
 import info.goodline.utubewatcher.Animation.DropDownAnim;
+import info.goodline.utubewatcher.Model.DraggablePanelState;
 import info.goodline.utubewatcher.Model.VideoItem;
 import info.goodline.utubewatcher.PlayerActivityFragment;
-import info.goodline.utubewatcher.PlayerYouTubeFragment;
 import info.goodline.utubewatcher.R;
 import info.goodline.utubewatcher.Util.DeveloperKey;
 import info.goodline.utubewatcher.Util.UtubeDataConnector;
@@ -55,20 +52,24 @@ public class VideoListActivityFragment extends Fragment {
     private DraggablePanel mDraggablePanel;
     private String mQueryString;
     private Handler mHandler;
+
+    private DraggablePanelState mDraggablePanelState;
     private ArrayList<VideoItem> mSearchResults;
 
 
     private YouTubePlayerSupportFragment mYoutubeFragment;
     private YouTubePlayer mYoutubePlayer;
+    private PlayerActivityFragment mMovieDescFragment;
 
-
+    private static final String PLAYER_SAVE_STATE ="playerSaveState" ;
     public static final String VIDEO_ID_TAG="VideoListActivityFragment.videoID";
     public static final String VIDEO_QUERY_TAG="mQueryString";
-    public static final String VIDEO_LIST_SAVE_STATE="videoList";
+    public static final String VIDEO_LIST_SAVE_STATE="videoListSaveState";
     private static final int RECOVERY_DIALOG_REQUEST = 1;
 
     private boolean isNeedShowSearchLayout=true;
     private boolean mIsFirstCall=true;
+    private boolean mIsDragablePanelMaximized;
 
 
     @Override
@@ -81,8 +82,11 @@ public class VideoListActivityFragment extends Fragment {
         mEmptyProgressBar = (ProgressBar) getView().findViewById(R.id.empty_progressbar);
         mDraggablePanel   = (DraggablePanel) getView().findViewById(R.id.draggable_panel);
 
+
+
         mVideosListView.setEmptyView(mEmptyProgressBar);
         mEmptyProgressBar.setVisibility(View.VISIBLE);
+        mDraggablePanel.setVisibility(View.GONE);
 
         mLinearLayout.setLayoutParams(new LinearLayout.LayoutParams(mLinearLayout.getWidth(), 0));
 
@@ -92,31 +96,12 @@ public class VideoListActivityFragment extends Fragment {
         setHasOptionsMenu(true);
 
 
+        searchInputActionListenerHandle();
+        videosListItemClickListenerHandle();
 
-         mSearchInput.setOnEditorActionListener(new TextView.OnEditorActionListener() {
-             @Override
-             public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
-                 final boolean isEnterEvent = event != null
-                         && event.getKeyCode() == KeyEvent.KEYCODE_ENTER;
-                 final boolean isEnterUpEvent = isEnterEvent && event.getAction() == KeyEvent.ACTION_UP;
-                 final boolean isEnterDownEvent = isEnterEvent && event.getAction() == KeyEvent.ACTION_DOWN;
-
-                 if (actionId == EditorInfo.IME_ACTION_DONE || isEnterUpEvent) {
-                     // Do your action here
-                     handleOnEditFinish(v);
-                     return true;
-                 } else if (isEnterDownEvent) {
-                     handleOnEditFinish(v);
-                     // Capture this event to receive ACTION_UP
-                     return true;
-                 } else {
-                     // We do not care on other actions
-                     return false;
-                 }
-             }
-         });
-        addClickListener();
-
+        initializeYoutubeFragment();
+        initializeDraggablePanel();
+        hookDraggablePanelListeners();
 
         if (savedInstanceState != null) {
             mSearchResults =(ArrayList) savedInstanceState.getSerializable(VIDEO_LIST_SAVE_STATE);
@@ -126,10 +111,41 @@ public class VideoListActivityFragment extends Fragment {
             }else{
                 searchOnYoutube(mQueryString);
             }
+            mDraggablePanelState= (DraggablePanelState) savedInstanceState.getSerializable(PLAYER_SAVE_STATE);
+
+            if(mDraggablePanelState == null){
+                mDraggablePanelState = new DraggablePanelState();
+            }
+
         }else{
             searchOnYoutube(mQueryString);
         }
 
+    }
+
+    private void searchInputActionListenerHandle() {
+        mSearchInput.setOnEditorActionListener(new TextView.OnEditorActionListener() {
+            @Override
+            public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
+                final boolean isEnterEvent = event != null
+                        && event.getKeyCode() == KeyEvent.KEYCODE_ENTER;
+                final boolean isEnterUpEvent = isEnterEvent && event.getAction() == KeyEvent.ACTION_UP;
+                final boolean isEnterDownEvent = isEnterEvent && event.getAction() == KeyEvent.ACTION_DOWN;
+
+                if (actionId == EditorInfo.IME_ACTION_DONE || isEnterUpEvent) {
+                    // Do your action here
+                    handleOnEditFinish(v);
+                    return true;
+                } else if (isEnterDownEvent) {
+                    handleOnEditFinish(v);
+                    // Capture this event to receive ACTION_UP
+                    return true;
+                } else {
+                    // We do not care on other actions
+                    return false;
+                }
+            }
+        });
     }
 
     private void handleOnEditFinish(TextView v) {
@@ -167,12 +183,10 @@ public class VideoListActivityFragment extends Fragment {
     private void updateVideosFound(){
         mVideoListAdapter.addNewslist((ArrayList)mSearchResults);
         mVideosListView.setAdapter(mVideoListAdapter);
-        if(mIsFirstCall){
-            handleSearchLayoutAnimation();
-        }
+
 
     }
-    private void addClickListener(){
+    private void videosListItemClickListenerHandle(){
        final Context cnxt = getActivity().getApplicationContext();
         mVideosListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
 
@@ -180,20 +194,17 @@ public class VideoListActivityFragment extends Fragment {
             public void onItemClick(AdapterView<?> av, View v, int pos, long id) {
 
                 VideoItem videoItem = mSearchResults.get(pos);
-                initializeYoutubeFragment(videoItem.getId());
-                initializeDraggablePanel(videoItem);
-                hookDraggablePanelListeners();
+                mYoutubePlayer.loadVideo(videoItem.getId());
+                if(mDraggablePanel.getVisibility()!=View.VISIBLE){
+                    mDraggablePanel.setVisibility(View.VISIBLE);
+                }
+                mMovieDescFragment.setVideoItem(videoItem);
+                mDraggablePanel.maximize();
             }
 
         });
     }
-    @Override
-    public void onSaveInstanceState(Bundle outState) {
-        super.onSaveInstanceState(outState);
-        outState.putString(VIDEO_QUERY_TAG, mQueryString);
-        ArrayList<VideoItem> videoList = mVideoListAdapter.getVideoList();
-        outState.putSerializable(VIDEO_LIST_SAVE_STATE, videoList);
-    }
+
 
     @Override
     public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
@@ -259,8 +270,10 @@ public class VideoListActivityFragment extends Fragment {
      * Initialize the YouTubeSupportFrament attached as top fragment to the DraggablePanel widget and
      * reproduce the YouTube video represented with a YouTube url.
      */
-    private void initializeYoutubeFragment(final String videoKey) {
+    private void initializeYoutubeFragment() {
+
         mYoutubeFragment = new YouTubePlayerSupportFragment();
+
         mYoutubeFragment.initialize(DeveloperKey.DEVELOPER_KEY, new YouTubePlayer.OnInitializedListener() {
 
             @Override
@@ -268,7 +281,6 @@ public class VideoListActivityFragment extends Fragment {
                                                 YouTubePlayer player, boolean wasRestored) {
                 if (!wasRestored) {
                     mYoutubePlayer = player;
-                    mYoutubePlayer.loadVideo(videoKey);
                     mYoutubePlayer.setShowFullscreenButton(true);
                 }
             }
@@ -292,18 +304,28 @@ public class VideoListActivityFragment extends Fragment {
     /**
      * Initialize and configure the DraggablePanel widget with two fragments and some attributes.
      */
-    private void initializeDraggablePanel(VideoItem videoItem) {
+    private void initializeDraggablePanel() {
         mDraggablePanel.setFragmentManager(getActivity().getSupportFragmentManager());
         mDraggablePanel.setTopFragment(mYoutubeFragment);
-        PlayerActivityFragment movieDescFragment = new PlayerActivityFragment();
-        movieDescFragment.setmVideoItem(videoItem);
-        mDraggablePanel.setBottomFragment(movieDescFragment);
+        mMovieDescFragment = new PlayerActivityFragment();
+
+             mDraggablePanel.setBottomFragment(mMovieDescFragment);
+
         mDraggablePanel.initializeView();
-        mDraggablePanel.setVisibility(View.VISIBLE);
-        mDraggablePanel.maximize();
 
     }
+    @Override
+    public void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+        outState.putString(VIDEO_QUERY_TAG, mQueryString);
+        ArrayList<VideoItem> videoList = mVideoListAdapter.getVideoList();
+        outState.putSerializable(VIDEO_LIST_SAVE_STATE, videoList);
 
+        int currentTimeMillis = mYoutubePlayer.getCurrentTimeMillis();
+        mDraggablePanelState.setCurentTime(currentTimeMillis);
+        mDraggablePanelState.setFullScreenEnabled(mIsDragablePanelMaximized);
+        mDraggablePanelState.setmIsDragablePanelMaximized(mIsDragablePanelMaximized);
+    }
     /**
      * Hook the DraggableListener to DraggablePanel to pause or resume the video when the
      * DragglabePanel is maximized or closed.
@@ -313,11 +335,12 @@ public class VideoListActivityFragment extends Fragment {
             @Override
             public void onMaximized() {
                 playVideo();
+                mIsDragablePanelMaximized=true;
             }
 
             @Override
             public void onMinimized() {
-                //Empty
+                mIsDragablePanelMaximized=false;
             }
 
             @Override
