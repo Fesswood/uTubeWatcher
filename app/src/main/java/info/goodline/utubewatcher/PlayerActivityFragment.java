@@ -21,7 +21,7 @@ import info.goodline.utubewatcher.VideoList.VideoListActivityFragment;
 
 public class PlayerActivityFragment extends Fragment {
 
-    private static final String VIDEO_TAG = "VideoSaveState";
+    public static final String VIDEO_TAG = "VideoSaveState";
     private VideoItem mVideoItem;
 
     private TextView mVideoTitleBigTextView;
@@ -72,5 +72,11 @@ public class PlayerActivityFragment extends Fragment {
     public void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
 
+    }
+
+    public boolean isInitialized() {
+        return mVideoTitleBigTextView != null
+               && mTimeTextView       != null
+               && mViewsCountTextView != null;
     }
 }

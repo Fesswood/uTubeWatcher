@@ -50,7 +50,6 @@ public class VideoListActivityFragment extends Fragment {
     private VideoListAdapter mVideoListAdapter;
     private LinearLayout mLinearLayout;
     private DraggablePanel mDraggablePanel;
-    private String mQueryString;
     private Handler mHandler;
 
     private DraggablePanelState mDraggablePanelState;
@@ -109,16 +108,40 @@ public class VideoListActivityFragment extends Fragment {
                 mVideoListAdapter.addNewslist(mSearchResults);
                 mVideosListView.setAdapter(mVideoListAdapter);
             }else{
-                searchOnYoutube(mQueryString);
+                searchOnYoutube(null);
             }
-            mDraggablePanelState= (DraggablePanelState) savedInstanceState.getSerializable(PLAYER_SAVE_STATE);
+            mDraggablePanelState = (DraggablePanelState) savedInstanceState.getSerializable(PLAYER_SAVE_STATE);
+            final VideoItem videoItem = (VideoItem) savedInstanceState.getSerializable(PlayerActivityFragment.VIDEO_TAG);
 
-            if(mDraggablePanelState == null){
-                mDraggablePanelState = new DraggablePanelState();
+            if(mDraggablePanelState != null && videoItem != null){
+                new Thread(){
+                    public void run(){
+                        while(true){
+                            if(mYoutubePlayer != null && mMovieDescFragment.isInitialized()){
+                                mMovieDescFragment.setVideoItem(videoItem);
+                                mYoutubePlayer.loadVideo(videoItem.getId());
+                                mYoutubePlayer.seekToMillis(mDraggablePanelState.getCurentTime());
+
+                                if(mDraggablePanelState.ismIsDragablePanelMaximized()){
+                                    mDraggablePanel.maximize();
+                                }
+                                break;
+                            }
+                            try {
+                                Thread.sleep(100L);
+                            } catch (InterruptedException e) {
+                                e.printStackTrace();
+                            }
+                        }
+                    }
+                }.start();
+
+            }else{
+              mDraggablePanelState = new DraggablePanelState();
             }
 
         }else{
-            searchOnYoutube(mQueryString);
+            searchOnYoutube(null);
         }
 
     }
@@ -195,7 +218,7 @@ public class VideoListActivityFragment extends Fragment {
 
                 VideoItem videoItem = mSearchResults.get(pos);
                 mYoutubePlayer.loadVideo(videoItem.getId());
-                if(mDraggablePanel.getVisibility()!=View.VISIBLE){
+                if (mDraggablePanel.getVisibility() != View.VISIBLE) {
                     mDraggablePanel.setVisibility(View.VISIBLE);
                 }
                 mMovieDescFragment.setVideoItem(videoItem);
@@ -281,6 +304,8 @@ public class VideoListActivityFragment extends Fragment {
                                                 YouTubePlayer player, boolean wasRestored) {
                 if (!wasRestored) {
                     mYoutubePlayer = player;
+                    mYoutubePlayer.addFullscreenControlFlag(YouTubePlayer.FULLSCREEN_FLAG_CONTROL_ORIENTATION);
+                    mYoutubePlayer.addFullscreenControlFlag(YouTubePlayer.FULLSCREEN_FLAG_ALWAYS_FULLSCREEN_IN_LANDSCAPE);
                     mYoutubePlayer.setShowFullscreenButton(true);
                 }
             }
@@ -317,14 +342,22 @@ public class VideoListActivityFragment extends Fragment {
     @Override
     public void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
-        outState.putString(VIDEO_QUERY_TAG, mQueryString);
-        ArrayList<VideoItem> videoList = mVideoListAdapter.getVideoList();
-        outState.putSerializable(VIDEO_LIST_SAVE_STATE, videoList);
 
-        int currentTimeMillis = mYoutubePlayer.getCurrentTimeMillis();
-        mDraggablePanelState.setCurentTime(currentTimeMillis);
+        ArrayList<VideoItem> videoList = mVideoListAdapter.getVideoList();
+
+        //int currentTimeMillis = mYoutubePlayer.getCurrentTimeMillis();
+        mDraggablePanelState = new DraggablePanelState();
+        mDraggablePanelState.setCurentTime(0);
         mDraggablePanelState.setFullScreenEnabled(mIsDragablePanelMaximized);
         mDraggablePanelState.setmIsDragablePanelMaximized(mIsDragablePanelMaximized);
+        if(mYoutubePlayer !=null){
+            mYoutubePlayer.release();
+            mYoutubePlayer=null;
+        }
+        outState.putSerializable(PLAYER_SAVE_STATE, mDraggablePanelState);
+        outState.putSerializable(mMovieDescFragment.VIDEO_TAG,mMovieDescFragment.getmVideoItem());
+        outState.putSerializable(VIDEO_LIST_SAVE_STATE, videoList);
+
     }
     /**
      * Hook the DraggableListener to DraggablePanel to pause or resume the video when the

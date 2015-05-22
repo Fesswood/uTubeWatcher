@@ -13,18 +13,26 @@ public class DraggablePanelState implements Serializable {
     public DraggablePanelState(){
     }
 
-    public DraggablePanelState(int mCurentTime, boolean mIsFullScreenEnabled, boolean mIsDragablePanelMaximized) {
-        this.mCurentTime = mCurentTime;
-        this.mIsFullScreenEnabled = mIsFullScreenEnabled;
-        this.mIsDragablePanelMaximized = mIsDragablePanelMaximized;
-    }
-
     public int getCurentTime() {
         return mCurentTime;
     }
 
     public void setCurentTime(int mCurentTime) {
         this.mCurentTime = mCurentTime;
+    }
+
+    public boolean isIsFullScreenEnabled() {
+        return mIsFullScreenEnabled;
+    }
+
+    public void setmIsFullScreenEnabled(boolean mIsFullScreenEnabled) {
+        this.mIsFullScreenEnabled = mIsFullScreenEnabled;
+    }
+
+    public DraggablePanelState(int mCurentTime, boolean mIsFullScreenEnabled, boolean mIsDragablePanelMaximized) {
+        this.mCurentTime = mCurentTime;
+        this.mIsFullScreenEnabled = mIsFullScreenEnabled;
+        this.mIsDragablePanelMaximized = mIsDragablePanelMaximized;
     }
 
     public boolean isFullScreenEnabled() {
