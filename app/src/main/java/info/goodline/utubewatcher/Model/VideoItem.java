@@ -13,6 +13,15 @@ public class VideoItem implements Serializable{
     private String thumbnailURL;
     private String id;
 
+    public VideoItem() {
+        String title="";
+        String description="";
+        long date=0;
+        BigInteger viewCounts=new BigInteger("0");
+        String duration="";
+        String thumbnailURL="";
+        String id="";
+    }
 
     public BigInteger getViewCounts() {
         return viewCounts;

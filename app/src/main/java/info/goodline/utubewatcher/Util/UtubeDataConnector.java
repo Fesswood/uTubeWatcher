@@ -27,7 +27,7 @@ public class UtubeDataConnector {
     private YouTube.Search.List query;
     private YouTube.Videos.List queryVideo;
     private String mDefaultQuery="mostPopular";
-    private long mtResultSetSize=10;
+    private long mtResultSetSize=40;
 
     public static final String LOCALE_RU="RU";
     public static final String DEBUG_TAG = "UtubeDataConnector";
