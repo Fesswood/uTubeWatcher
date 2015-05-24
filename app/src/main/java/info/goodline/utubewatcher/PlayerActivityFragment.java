@@ -27,6 +27,7 @@ public class PlayerActivityFragment extends Fragment {
     private TextView mVideoTitleBigTextView;
     private TextView mTimeTextView         ;
     private TextView mViewsCountTextView   ;
+    private TextView mVideoDescTextView;
 
     public PlayerActivityFragment() {
     }
@@ -54,7 +55,8 @@ public class PlayerActivityFragment extends Fragment {
         this.mVideoItem = videoItem;
         mVideoTitleBigTextView.setText(mVideoItem.getTitle());
         mTimeTextView.setText(mVideoItem.getDuration());
-        mViewsCountTextView.setText("Число просмотров"+mVideoItem.getViewCounts());
+        mViewsCountTextView.setText(""+mVideoItem.getViewCounts());
+        mVideoDescTextView.setText(mVideoItem.getDescription());
     }
 
     @Override
@@ -64,6 +66,7 @@ public class PlayerActivityFragment extends Fragment {
         mVideoTitleBigTextView =(TextView) view.findViewById(R.id.videoTitleBig);
         mTimeTextView          =(TextView) view.findViewById(R.id.Time);
         mViewsCountTextView    =(TextView) view.findViewById(R.id.viewsCount);
+        mVideoDescTextView    =(TextView) view.findViewById(R.id.videoDesc);
 
 
         return view;

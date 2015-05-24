@@ -167,7 +167,7 @@ public class VideoListActivityFragment extends Fragment {
 
         outState.putSerializable(mMovieDescFragment.VIDEO_TAG,mMovieDescFragment.getmVideoItem());
 
-        if (!mYoutubePlayer.isPlaying()) {
+        if ( mYoutubePlayer!=null && !mYoutubePlayer.isPlaying()) {
             outState.putBoolean(STATE_IS_PLAYING, true);
         }
 
