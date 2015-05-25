@@ -1,6 +1,7 @@
 package info.goodline.utubewatcher;
 
 import android.content.Intent;
+import android.os.Handler;
 import android.support.v4.app.Fragment;
 import android.os.Bundle;
 import android.view.LayoutInflater;
@@ -16,6 +17,7 @@ import com.google.android.youtube.player.YouTubePlayerFragment;
 import java.util.ArrayList;
 
 import info.goodline.utubewatcher.Model.VideoItem;
+import info.goodline.utubewatcher.Util.UtubeDataConnector;
 import info.goodline.utubewatcher.VideoList.VideoListActivityFragment;
 
 
@@ -29,13 +31,15 @@ public class PlayerActivityFragment extends Fragment {
     private TextView mViewsCountTextView   ;
     private TextView mVideoDescTextView;
 
+    private Handler mDescHandler;
+
     public PlayerActivityFragment() {
     }
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
+        mDescHandler=new Handler();
         if (savedInstanceState != null) {
             mVideoItem =(VideoItem) savedInstanceState.getSerializable(VIDEO_TAG);
             if (mVideoItem == null ) {
@@ -51,12 +55,45 @@ public class PlayerActivityFragment extends Fragment {
         return mVideoItem;
     }
 
-    public void setVideoItem(VideoItem videoItem) {
+    public void setVideoItem(final VideoItem videoItem,final UtubeDataConnector utube) {
         this.mVideoItem = videoItem;
+
         mVideoTitleBigTextView.setText(mVideoItem.getTitle());
-        mTimeTextView.setText(mVideoItem.getDuration());
-        mViewsCountTextView.setText(""+mVideoItem.getViewCounts());
         mVideoDescTextView.setText(mVideoItem.getDescription());
+
+        handleEmptyViewAndDuration(videoItem, utube);
+
+    }
+
+    private void handleEmptyViewAndDuration(final VideoItem videoItem, final UtubeDataConnector utube) {
+        if(videoItem.getViewCounts() == null || videoItem.getDuration() == null){
+            mTimeTextView.setText("Подгружаем...");
+            mViewsCountTextView.setText("Подгружаем...");
+
+            new Thread(
+                    new Runnable() {
+                        @Override
+                        public void run() {
+                            final VideoItem itemWithDesc = utube.getDesc(videoItem.getId());
+                            mDescHandler.post(new Runnable() {
+                                @Override
+                                public void run() {
+
+                                    mTimeTextView.setText(itemWithDesc.getDuration());
+                                    mViewsCountTextView.setText(""+itemWithDesc.getViewCounts());
+
+                                }
+                            });
+                        }
+                    }
+            ).start();
+
+        }else{
+
+            mTimeTextView.setText(mVideoItem.getDuration());
+            mViewsCountTextView.setText(""+mVideoItem.getViewCounts());
+
+        }
     }
 
     @Override

@@ -19,16 +19,12 @@ public enum DraggableState implements Serializable {
     public static final String DRAGGABLE_PANEL_STATE = "DraggableState.DraggablePanel";
     private static final long DELAY_MILLIS = 100;
 
-    public static void saveDraggableState(Bundle outState ,DraggablePanel draggablePanel) {
+    public static void saveDraggableState(Bundle outState ,boolean isDragablePanelMaximized) {
         DraggableState draggableState = null;
-        if (draggablePanel.isMaximized()) {
+        if (isDragablePanelMaximized) {
             draggableState = DraggableState.MAXIMIZED;
-        } else if (draggablePanel.isMinimized()) {
+        } else {
             draggableState = DraggableState.MINIMIZED;
-        } else if (draggablePanel.isClosedAtLeft()) {
-            draggableState = DraggableState.CLOSED_AT_LEFT;
-        } else if (draggablePanel.isClosedAtRight()) {
-            draggableState = DraggableState.CLOSED_AT_RIGHT;
         }
         outState.putSerializable(DRAGGABLE_PANEL_STATE, draggableState);
     }

@@ -3,12 +3,12 @@ package info.goodline.utubewatcher.VideoList;
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.content.Context;
+import android.content.Intent;
 import android.os.Handler;
+import android.speech.RecognizerIntent;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
 import android.os.Bundle;
-import android.support.v4.app.FragmentActivity;
-import android.util.Log;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -32,9 +32,9 @@ import com.google.android.youtube.player.YouTubePlayerSupportFragment;
 import com.rengwuxian.materialedittext.MaterialEditText;
 
 import java.util.ArrayList;
+import java.util.List;
 
 import info.goodline.utubewatcher.Animation.DropDownAnim;
-import info.goodline.utubewatcher.Model.DraggablePanelState;
 import info.goodline.utubewatcher.Model.VideoItem;
 import info.goodline.utubewatcher.PlayerActivityFragment;
 import info.goodline.utubewatcher.R;
@@ -46,7 +46,8 @@ import info.goodline.utubewatcher.Util.UtubeDataConnector;
 
 public class VideoListActivityFragment extends Fragment {
 
-    private static final String STATE_IS_PLAYING = "isPlayingState";
+
+
     private MaterialEditText mSearchInput;
     private ListView mVideosListView;
     private ProgressBar mEmptyProgressBar;
@@ -63,16 +64,20 @@ public class VideoListActivityFragment extends Fragment {
     private YouTubePlayer mYoutubePlayer;
     private PlayerActivityFragment mMovieDescFragment;
 
+    private static final String STATE_IS_PLAYING = "isPlayingState";
     private static final String PLAYER_SAVE_STATE ="playerSaveState" ;
     public static final String VIDEO_ID_TAG="VideoListActivityFragment.videoID";
     public static final String VIDEO_QUERY_TAG="mQueryString";
     public static final String VIDEO_LIST_SAVE_STATE="videoListSaveState";
     private static final int RECOVERY_DIALOG_REQUEST = 1;
+    private static final int SPEECH_REQUEST_CODE = 0;
+
 
     private boolean isNeedShowSearchLayout=true;
-    private boolean mIsFirstCall=true;
+    private boolean mIsPlayerInitializeSuccess=false;
     private boolean mIsDragablePanelMaximized;
-    private String mTargetVideo;
+    private UtubeDataConnector mUtubeDataConnector;
+    private boolean mIsFirstUpdate =true;
 
 
     @Override
@@ -94,38 +99,44 @@ public class VideoListActivityFragment extends Fragment {
         mLinearLayout.setLayoutParams(new LinearLayout.LayoutParams(mLinearLayout.getWidth(), 0));
 
 
+        mUtubeDataConnector = new UtubeDataConnector(getActivity());
         mVideoListAdapter=new VideoListAdapter(getActivity());
+        mVideosListView.setAdapter(mVideoListAdapter);
         mHandler = new Handler();
+
         setHasOptionsMenu(true);
 
 
         searchInputActionListenerHandle();
-        videosListItemClickListenerHandle();
-
+        handleVideosListItemClickListener();
         initializeYoutubeFragment();
         initializeDraggablePanel();
-        hookDraggablePanelListeners();
 
         if (savedInstanceState != null) {
             mSearchResults =(ArrayList) savedInstanceState.getSerializable(VIDEO_LIST_SAVE_STATE);
             if (mSearchResults != null && mSearchResults.size()>0) {
                 mVideoListAdapter.addNewslist(mSearchResults);
                 mVideosListView.setAdapter(mVideoListAdapter);
+                if(mIsFirstUpdate){
+                    initializeInfinityScroll();
+                    mIsFirstUpdate =false;
+                }
             }else{
                 searchOnYoutube(null);
             }
-
+            mUtubeDataConnector=UtubeDataConnector.recoverNextAndPrevPagesState(savedInstanceState,getActivity());
 
               final VideoItem videoItem = (VideoItem) savedInstanceState.getSerializable(PlayerActivityFragment.VIDEO_TAG);
            mDraggablePanelState= (DraggableState) savedInstanceState.getSerializable(DraggableState.DRAGGABLE_PANEL_STATE);
-            if(DraggableState.MAXIMIZED ==  mDraggablePanelState ){
+            if(mDraggablePanelState != null){
                 new Thread(){
                     public void run(){
                         while(true){
                             if(mYoutubePlayer != null && mMovieDescFragment.isInitialized()){
 
-                                if( videoItem != null){
-                                    mMovieDescFragment.setVideoItem(videoItem);
+                                if( videoItem != null && videoItem.getId() != null
+                                        && videoItem.getId() != ""){
+                                    mMovieDescFragment.setVideoItem(videoItem,mUtubeDataConnector);
                                     mYoutubePlayer.loadVideo(videoItem.getId());
                                 }
 
@@ -150,11 +161,34 @@ public class VideoListActivityFragment extends Fragment {
                 }.start();
             }
 
-        }else{
+        } else {
             searchOnYoutube(null);
         }
     }
 
+    private void initializeInfinityScroll() {
+        mVideosListView.setOnScrollListener(new InfinityScrollListener(mUtubeDataConnector.getResultSetSize()) {
+            // событие возникает во время того как скроллинг дойдет до конца
+            @Override
+            public void loadMore(int page, int totalItemsCount) {
+                // загрузить еще данных
+                new Thread(){
+                    public void run(){
+                        mSearchResults=mUtubeDataConnector.getNextPage();
+                        mHandler.post(new Runnable() {
+                            public void run() {
+                                if(mSearchResults != null && mSearchResults.size()>0){
+                                    mVideoListAdapter.addNewslist((ArrayList) mSearchResults);
+                                }else{
+                                    Toast.makeText(getActivity(),"Видеоролики закончились",Toast.LENGTH_SHORT).show();
+                                }
+                            }
+                        });
+                    }
+                }.start();
+            }
+        });
+    }
 
 
     @Override
@@ -162,26 +196,17 @@ public class VideoListActivityFragment extends Fragment {
         super.onSaveInstanceState(outState);
 
         ArrayList<VideoItem> videoList = mVideoListAdapter.getVideoList();
-        DraggableState.saveDraggableState(outState, mDraggablePanel);
+
+        UtubeDataConnector.saveNextAndPrevPagesState(outState,mUtubeDataConnector);
+        DraggableState.saveDraggableState(outState, mIsDragablePanelMaximized);
         outState.putSerializable(VIDEO_LIST_SAVE_STATE, videoList);
 
-        outState.putSerializable(mMovieDescFragment.VIDEO_TAG,mMovieDescFragment.getmVideoItem());
+        outState.putSerializable(mMovieDescFragment.VIDEO_TAG, mMovieDescFragment.getmVideoItem());
 
-        if ( mYoutubePlayer!=null && !mYoutubePlayer.isPlaying()) {
+        if (mIsPlayerInitializeSuccess ) {
+            if(mYoutubePlayer!=null &&  !mYoutubePlayer.isPlaying())
             outState.putBoolean(STATE_IS_PLAYING, true);
         }
-
-        //int currentTimeMillis = mYoutubePlayer.getCurrentTimeMillis();
-    /*    mDraggablePanelState = new DraggablePanelState();
-        mDraggablePanelState.setCurentTime(0);
-        mDraggablePanelState.setmIsDragablePanelMaximized(mIsDragablePanelMaximized);
-        if(mYoutubePlayer !=null){
-            mYoutubePlayer.release();
-            mYoutubePlayer=null;
-        }
-        outState.putSerializable(PLAYER_SAVE_STATE, mDraggablePanelState);
-        outState.putSerializable(mMovieDescFragment.VIDEO_TAG,mMovieDescFragment.getmVideoItem());
-     ;*/
 
     }
 
@@ -196,10 +221,10 @@ public class VideoListActivityFragment extends Fragment {
 
                 if (actionId == EditorInfo.IME_ACTION_DONE || isEnterUpEvent) {
                     // Do your action here
-                    handleOnEditFinish(v);
+                    searchOnYoutube(v.getText().toString());
                     return true;
                 } else if (isEnterDownEvent) {
-                    handleOnEditFinish(v);
+                    searchOnYoutube(v.getText().toString());
                     // Capture this event to receive ACTION_UP
                     return true;
                 } else {
@@ -210,11 +235,6 @@ public class VideoListActivityFragment extends Fragment {
         });
     }
 
-    private void handleOnEditFinish(TextView v) {
-        searchOnYoutube(v.getText().toString());
-        mVideoListAdapter.clear();
-    }
-
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
@@ -222,14 +242,13 @@ public class VideoListActivityFragment extends Fragment {
     }
 
     private void searchOnYoutube(@Nullable final String keywords){
-        final FragmentActivity activity = getActivity();
         new Thread(){
             public void run(){
-                UtubeDataConnector tubeCon = new UtubeDataConnector(activity);
+
                 if (keywords==null){
-                    mSearchResults = tubeCon.showLastVideo();
+                    mSearchResults = mUtubeDataConnector.showLastVideo();
                 }else{
-                    mSearchResults = tubeCon.search(keywords);
+                    mSearchResults = mUtubeDataConnector.search(keywords);
                 }
                 mHandler.post(new Runnable() {
                     public void run() {
@@ -243,32 +262,33 @@ public class VideoListActivityFragment extends Fragment {
 
 
     private void updateVideosFound() {
+        mVideoListAdapter.clear();
         mVideoListAdapter.addNewslist((ArrayList) mSearchResults);
-        mVideosListView.setAdapter(mVideoListAdapter);
-
-
+        if(mIsFirstUpdate){
+            initializeInfinityScroll();
+            mIsFirstUpdate =false;
+        }
     }
 
-    private void videosListItemClickListenerHandle() {
+    private void handleVideosListItemClickListener() {
         final Context cnxt = getActivity().getApplicationContext();
         mVideosListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
 
             @Override
             public void onItemClick(AdapterView<?> av, View v, int pos, long id) {
 
-                VideoItem videoItem = mSearchResults.get(pos);
+                VideoItem videoItem = mVideoListAdapter.getItem(pos);
+
 
                 if (mYoutubePlayer == null) {
                     initializeYoutubeFragment();
-                    mTargetVideo = videoItem.getId();
                 } else {
                     mYoutubePlayer.loadVideo(videoItem.getId());
-                    mTargetVideo = null;
                 }
                 if (mDraggablePanel.getVisibility() != View.VISIBLE) {
                     mDraggablePanel.setVisibility(View.VISIBLE);
                 }
-                mMovieDescFragment.setVideoItem(videoItem);
+                mMovieDescFragment.setVideoItem(videoItem,mUtubeDataConnector);
                 mDraggablePanel.maximize();
             }
 
@@ -298,6 +318,12 @@ public class VideoListActivityFragment extends Fragment {
         }
         if (id == R.id.action_search) {
             handleSearchLayoutAnimation();
+        }
+        if (id == R.id.action_search_speech) {
+            displaySpeechRecognizer();
+            if(mLinearLayout.getVisibility()==View.GONE){
+                handleSearchLayoutAnimation();
+            }
         }
 
         return super.onOptionsItemSelected(item);
@@ -335,11 +361,7 @@ public class VideoListActivityFragment extends Fragment {
         }).start();
 
     }
-  //Dragable Panel methods
-    /**
-     * Initialize the YouTubeSupportFrament attached as top fragment to the DraggablePanel widget and
-     * reproduce the YouTube video represented with a YouTube url.
-     */
+
     private void initializeYoutubeFragment() {
 
         mYoutubeFragment = new YouTubePlayerSupportFragment();
@@ -354,6 +376,9 @@ public class VideoListActivityFragment extends Fragment {
                     //    mYoutubePlayer.addFullscreenControlFlag(YouTubePlayer.FULLSCREEN_FLAG_CONTROL_ORIENTATION);
                     //   mYoutubePlayer.addFullscreenControlFlag(YouTubePlayer.FULLSCREEN_FLAG_ALWAYS_FULLSCREEN_IN_LANDSCAPE);
                     mYoutubePlayer.setShowFullscreenButton(true);
+                    mIsPlayerInitializeSuccess=true;
+
+
 
 
                 }
@@ -376,65 +401,78 @@ public class VideoListActivityFragment extends Fragment {
         });
     }
 
-    /**
-     * Initialize and configure the DraggablePanel widget with two fragments and some attributes.
-     */
     private void initializeDraggablePanel() {
         mDraggablePanel.setFragmentManager(getActivity().getSupportFragmentManager());
         mDraggablePanel.setTopFragment(mYoutubeFragment);
         mMovieDescFragment = new PlayerActivityFragment();
 
-             mDraggablePanel.setBottomFragment(mMovieDescFragment);
-
+        mDraggablePanel.setBottomFragment(mMovieDescFragment);
+        hookDraggablePanelListeners();
         mDraggablePanel.initializeView();
 
     }
 
-    /**
-     * Hook the DraggableListener to DraggablePanel to pause or resume the video when the
-     * DragglabePanel is maximized or closed.
-     */
     private void hookDraggablePanelListeners() {
         mDraggablePanel.setDraggableListener(new DraggableListener() {
             @Override
             public void onMaximized() {
                 playVideo();
-                mIsDragablePanelMaximized=true;
+                mIsDragablePanelMaximized = true;
             }
 
             @Override
             public void onMinimized() {
-                mIsDragablePanelMaximized=false;
+                mIsDragablePanelMaximized = false;
             }
 
             @Override
             public void onClosedToLeft() {
                 pauseVideo();
+                mIsDragablePanelMaximized=false;
             }
 
             @Override
             public void onClosedToRight() {
                 pauseVideo();
+                mIsDragablePanelMaximized=false;
             }
         });
     }
 
-    /**
-     * Pause the video reproduced in the YouTubePlayer.
-     */
     private void pauseVideo() {
         if (mYoutubePlayer.isPlaying()) {
             mYoutubePlayer.pause();
         }
     }
 
-    /**
-     * Resume the video reproduced in the YouTubePlayer.
-     */
     private void playVideo() {
         if (!mYoutubePlayer.isPlaying()) {
              mYoutubePlayer.play();
         }
+    }
+
+    private void displaySpeechRecognizer() {
+        Intent intent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
+        intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL,
+                RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
+// Start the activity, the intent will be populated with the speech text
+        startActivityForResult(intent, SPEECH_REQUEST_CODE);
+    }
+
+    // This callback is invoked when the Speech Recognizer returns.
+// This is where you process the intent and extract the speech text from the intent.
+    @Override
+    public void onActivityResult(int requestCode, int resultCode,
+                                    Intent data) {
+        if (requestCode == SPEECH_REQUEST_CODE && resultCode == getActivity().RESULT_OK) {
+            List<String> results = data.getStringArrayListExtra(
+                    RecognizerIntent.EXTRA_RESULTS);
+            String spokenText = results.get(0);
+            mSearchInput.setText(spokenText);
+            searchOnYoutube(spokenText);
+
+        }
+        super.onActivityResult(requestCode, resultCode, data);
     }
 
     @Override
