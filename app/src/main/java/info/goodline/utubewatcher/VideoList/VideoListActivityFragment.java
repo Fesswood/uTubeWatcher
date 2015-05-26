@@ -64,6 +64,7 @@ public class VideoListActivityFragment extends Fragment {
     private YouTubePlayer mYoutubePlayer;
     private PlayerActivityFragment mMovieDescFragment;
 
+    private static final String CURRENT_MILLISEC_STATE = "CurrentMillisec";
     private static final String STATE_IS_PLAYING = "isPlayingState";
     private static final String PLAYER_SAVE_STATE ="playerSaveState" ;
     public static final String VIDEO_ID_TAG="VideoListActivityFragment.videoID";
@@ -128,6 +129,7 @@ public class VideoListActivityFragment extends Fragment {
 
               final VideoItem videoItem = (VideoItem) savedInstanceState.getSerializable(PlayerActivityFragment.VIDEO_TAG);
            mDraggablePanelState= (DraggableState) savedInstanceState.getSerializable(DraggableState.DRAGGABLE_PANEL_STATE);
+
             if(mDraggablePanelState != null){
                 new Thread(){
                     public void run(){
@@ -136,8 +138,10 @@ public class VideoListActivityFragment extends Fragment {
 
                                 if( videoItem != null && videoItem.getId() != null
                                         && videoItem.getId() != ""){
-                                    mMovieDescFragment.setVideoItem(videoItem,mUtubeDataConnector);
-                                    mYoutubePlayer.loadVideo(videoItem.getId());
+                                    mMovieDescFragment.setVideoItem(videoItem, mUtubeDataConnector);
+
+                                        mYoutubePlayer.loadVideo(videoItem.getId());
+
                                 }
 
                                 mHandler.post(new Runnable() {
@@ -335,7 +339,7 @@ public class VideoListActivityFragment extends Fragment {
             TargetHeight=130;
            mLinearLayout.setLayoutParams(new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 0));
         }
-        DropDownAnim dropDownAnim = new DropDownAnim(mLinearLayout, TargetHeight, isNeedShowSearchLayout);
+        final DropDownAnim dropDownAnim = new DropDownAnim(mLinearLayout, TargetHeight, isNeedShowSearchLayout);
         dropDownAnim.setDuration(500L);
         dropDownAnim.setFillAfter(true);
         dropDownAnim.setFillEnabled(true);
@@ -355,6 +359,7 @@ public class VideoListActivityFragment extends Fragment {
                     mSearchInput.setActivated(false);
                 } else {
                     mSearchInput.setActivated(true);
+
                 }
                 isNeedShowSearchLayout =!isNeedShowSearchLayout;
             }

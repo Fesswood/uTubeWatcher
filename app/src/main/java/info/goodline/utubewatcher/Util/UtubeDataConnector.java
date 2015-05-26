@@ -11,6 +11,10 @@ import com.google.api.client.http.HttpRequestInitializer;
 import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.api.client.json.jackson2.JacksonFactory;
 import com.google.api.services.youtube.YouTube;
+import com.google.api.services.youtube.model.Playlist;
+import com.google.api.services.youtube.model.PlaylistItem;
+import com.google.api.services.youtube.model.PlaylistItemListResponse;
+import com.google.api.services.youtube.model.PlaylistListResponse;
 import com.google.api.services.youtube.model.SearchListResponse;
 import com.google.api.services.youtube.model.SearchResult;
 import com.google.api.services.youtube.model.Video;
@@ -20,6 +24,7 @@ import com.google.api.services.youtube.model.VideoListResponse;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 import info.goodline.utubewatcher.Model.VideoItem;
@@ -33,7 +38,7 @@ public class UtubeDataConnector {
     private YouTube youtube;
     private YouTube.Search.List query;
     private YouTube.Videos.List queryVideo;
-    private String mDefaultQuery="mostPopular";
+    private String mDefaultQuery="PLgMaGEI-ZiiZ0ZvUtduoDRVXcU5ELjPcI";
 
     public String mNextPageToken;
     private String mPrevPageToken;
@@ -101,7 +106,7 @@ public class UtubeDataConnector {
     }
     public VideoItem getDesc(String Id) {
         try{
-            queryVideo = youtube.videos().list("id,snippet,contentDetails,statistics");
+            queryVideo =  youtube.videos().list("id,snippet,contentDetails,statistics");
             queryVideo.setKey(DeveloperKey.DEVELOPER_KEY);
             queryVideo.setMaxResults(mResultSetSize);
 
@@ -129,34 +134,30 @@ public class UtubeDataConnector {
 
     public ArrayList<VideoItem> showLastVideo() {
         try{
-            queryVideo = youtube.videos().list("id,snippet,contentDetails,statistics");
-            queryVideo.setKey(DeveloperKey.DEVELOPER_KEY);
-            queryVideo.setMaxResults(mResultSetSize);
+            YouTube.PlaylistItems.List queryItemsList = youtube.playlistItems().list("id,snippet");
+            queryItemsList.setKey(DeveloperKey.DEVELOPER_KEY);
+            queryItemsList.setMaxResults(mResultSetSize);
 
-            queryVideo.setChart(mDefaultQuery);
-            queryVideo.setRegionCode(LOCALE_RU);
+            queryItemsList.setPlaylistId(mDefaultQuery);
 
             if(mNextPageToken != null){
-                queryVideo.setPageToken(mNextPageToken);
+                queryItemsList.setPageToken(mNextPageToken);
             }
-            VideoListResponse response = queryVideo.execute();
-            List<Video> results = response.getItems();
-
+            PlaylistItemListResponse response = queryItemsList.execute();
+            List<PlaylistItem> results = response.getItems();
             mNextPageToken= response.getNextPageToken();
             mPrevPageToken= response.getPrevPageToken();
 
 
             ArrayList<VideoItem> items = new ArrayList<VideoItem>();
 
-            for(Video result:results){
+            for(PlaylistItem result:results){
                 VideoItem item = new VideoItem();
                 item.setTitle(result.getSnippet().getTitle());
                 item.setDate(result.getSnippet().getPublishedAt().getValue());
                 item.setDescription(result.getSnippet().getDescription());
-                item.setDuration(timeHumanReadable(result.getContentDetails().getDuration()));
-                item.setViewCounts(result.getStatistics().getViewCount());
                 item.setThumbnailURL(result.getSnippet().getThumbnails().getDefault().getUrl());
-                item.setId(result.getId());
+                item.setId(result.getSnippet().getResourceId().getVideoId());
                 items.add(item);
             }
             return items;

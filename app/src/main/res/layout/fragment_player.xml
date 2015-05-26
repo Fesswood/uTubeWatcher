@@ -84,6 +84,7 @@
                         android:textAppearance="?android:attr/textAppearanceMedium"
                         android:text="Описание ролика"
                         android:id="@+id/videoDesc"
+                        android:autoLink="web"
                         android:layout_below="@+id/Time"
                         android:layout_toRightOf="@+id/Time"
                         android:layout_toEndOf="@+id/Time"

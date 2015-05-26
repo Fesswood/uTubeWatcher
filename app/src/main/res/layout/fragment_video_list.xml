@@ -53,6 +53,7 @@
                 android:layout_height="match_parent"
                 android:divider="@null"
                 android:background="@color/primary"
+
                 android:dividerHeight="0dp"
                 android:layout_gravity="center" />
 
