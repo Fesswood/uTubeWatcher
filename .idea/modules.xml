@@ -3,6 +3,7 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/app/app.iml" filepath="$PROJECT_DIR$/app/app.iml" />
+      <module fileurl="file://$PROJECT_DIR$/draggablepanel/draggablepanel.iml" filepath="$PROJECT_DIR$/draggablepanel/draggablepanel.iml" />
       <module fileurl="file://$PROJECT_DIR$/uTubeWatcher.iml" filepath="$PROJECT_DIR$/uTubeWatcher.iml" />
     </modules>
   </component>

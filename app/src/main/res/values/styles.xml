@@ -4,16 +4,21 @@
     <!-- Base application theme. -->
 
     <style name="AppTheme"
-        parent="@style/Theme.AppCompat.Light">
+        parent="@style/Theme.AppCompat">
         <item name="android:actionBarStyle">@style/MyActionBar</item>
 
         <!-- Support library compatibility -->
         <item name="actionBarStyle">@style/MyActionBar</item>
+        <item name="android:textAppearance">@style/MyText</item>
+    </style>
+
+    <style name="MyText" parent="@android:style/TextAppearance">
+         <item name="android:textColor">@color/primary_text</item>
     </style>
 
     <!-- ActionBar styles -->
     <style name="MyActionBar"
-        parent="@style/Widget.AppCompat.Light.ActionBar">
+        parent="@style/Widget.AppCompat.ActionBar">
         <item name="android:background">@color/primary</item>
         <item name="android:titleTextStyle">@style/MyActionBarTitleText</item>
         <!-- Support library compatibility -->
