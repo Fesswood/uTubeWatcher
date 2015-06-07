@@ -32,7 +32,8 @@ import info.goodline.utubewatcher.util.DeveloperKey;
 public class YoutubeDataConnector {
     private static final String NEXT_PAGE_STATE = "YoutubeDataConnector.NEXT_PAGE_STATE";
     private static final String PREV_PAGE_STATE =  "YoutubeDataConnector.PREV_PAGE_STATE";
-    private final Context mContext;
+    public static final String LOCALE_RU="RU";
+    public static final String DEBUG_TAG =YoutubeDataConnector.class.getSimpleName();
     private YouTube youtube;
     private YouTube.Search.List query;
     private YouTube.Videos.List queryVideo;
@@ -40,30 +41,28 @@ public class YoutubeDataConnector {
 
     public String mNextPageToken;
     private String mPrevPageToken;
+    /**
+     * Count of video items which will be downloaded at once
+     */
     public long mResultSetSize=10;
-    public static final String LOCALE_RU="RU";
-    public static final String DEBUG_TAG = "YoutubeDataConnector";
+    /**
+     * Search key phrases
+     */
     private String mKeywords;
 
-
+    /**
+     * Create
+     * @param context
+     */
     public YoutubeDataConnector(Context context) {
-        mContext=context;
         youtube = new YouTube.Builder(new NetHttpTransport(),
                 new JacksonFactory(), new HttpRequestInitializer() {
             @Override
             public void initialize(com.google.api.client.http.HttpRequest request) throws IOException {
-
             }
         }).setApplicationName(context.getString(R.string.app_name)).build();
 
     }
-
-
-
-    public void setResultSetSize(long mtResultSetSize) {
-        this.mResultSetSize = mtResultSetSize;
-    }
-
 
     public ArrayList<VideoItem> search(String keywords){
 
@@ -84,24 +83,67 @@ public class YoutubeDataConnector {
             mNextPageToken = response.getNextPageToken();
             mPrevPageToken = response.getPrevPageToken();
 
-            List<SearchResult> results = response.getItems();
-            ArrayList<VideoItem> items = new ArrayList<VideoItem>();
-
-            for(SearchResult result:results){
-                VideoItem item = new VideoItem();
-                item.setTitle(result.getSnippet().getTitle());
-                item.setDate(result.getSnippet().getPublishedAt().getValue());
-                item.setDescription(result.getSnippet().getDescription());
-                item.setThumbnailURL(result.getSnippet().getThumbnails().getDefault().getUrl());
-                item.setId(result.getId().getVideoId());
-                items.add(item);
-            }
-            return items;
+            List<SearchResult> requestResult = response.getItems();
+            return createVideoItems(requestResult,false);
         }catch(IOException e){
             Log.d(DEBUG_TAG, "Could not search: "+e);
             return new ArrayList<>();
         }
     }
+
+    public ArrayList<VideoItem> showLastVideo() {
+        try{
+            YouTube.PlaylistItems.List queryItemsList = youtube.playlistItems().list("id,snippet");
+            queryItemsList.setKey(DeveloperKey.DEVELOPER_KEY);
+            queryItemsList.setMaxResults(mResultSetSize);
+
+            queryItemsList.setPlaylistId(mDefaultQuery);
+
+            if(mNextPageToken != null){
+                queryItemsList.setPageToken(mNextPageToken);
+            }
+            PlaylistItemListResponse response = queryItemsList.execute();
+            List<PlaylistItem> results = response.getItems();
+            mNextPageToken= response.getNextPageToken();
+            mPrevPageToken= response.getPrevPageToken();
+
+            return createVideoItems(results,true);
+        }catch(IOException e){
+            Log.d(DEBUG_TAG, "Could not search: "+e);
+            return new ArrayList<>();
+        }
+    }
+
+    private ArrayList<VideoItem> createVideoItems(List requestResult,boolean isVideoDescList) {
+        ArrayList items = new ArrayList<>();
+        if(isVideoDescList){
+            for(PlaylistItem resultVideo:(List<PlaylistItem>)requestResult){
+                VideoItem item = new VideoItem();
+                item.setTitle(resultVideo.getSnippet().getTitle());
+                item.setDate(resultVideo.getSnippet().getPublishedAt().getValue());
+                item.setDescription(resultVideo.getSnippet().getDescription());
+                if(resultVideo.getSnippet().getThumbnails() != null){
+                    item.setThumbnailURL(resultVideo.getSnippet().getThumbnails().getDefault().getUrl());
+                }else{
+                    item.setThumbnailURL("");
+                }
+                item.setId(resultVideo.getSnippet().getResourceId().getVideoId());
+                items.add(item);
+            }
+        }else{
+            for(SearchResult resultItem:(List<SearchResult>)requestResult){
+                VideoItem item = new VideoItem();
+                item.setTitle(resultItem.getSnippet().getTitle());
+                item.setDate(resultItem.getSnippet().getPublishedAt().getValue());
+                item.setDescription(resultItem.getSnippet().getDescription());
+                item.setThumbnailURL(resultItem.getSnippet().getThumbnails().getDefault().getUrl());
+                item.setId(resultItem.getId().getVideoId());
+                items.add(item);
+            }
+        }
+        return items;
+    }
+
     public VideoItem getDesc(String Id) {
         try{
             queryVideo =  youtube.videos().list("id,snippet,contentDetails,statistics");
@@ -127,45 +169,6 @@ public class YoutubeDataConnector {
         }catch(IOException e){
             Log.d(DEBUG_TAG, "Could not search: "+e);
             return new VideoItem();
-        }
-    }
-
-    public ArrayList<VideoItem> showLastVideo() {
-        try{
-            YouTube.PlaylistItems.List queryItemsList = youtube.playlistItems().list("id,snippet");
-            queryItemsList.setKey(DeveloperKey.DEVELOPER_KEY);
-            queryItemsList.setMaxResults(mResultSetSize);
-
-            queryItemsList.setPlaylistId(mDefaultQuery);
-
-            if(mNextPageToken != null){
-                queryItemsList.setPageToken(mNextPageToken);
-            }
-            PlaylistItemListResponse response = queryItemsList.execute();
-            List<PlaylistItem> results = response.getItems();
-            mNextPageToken= response.getNextPageToken();
-            mPrevPageToken= response.getPrevPageToken();
-
-
-            ArrayList<VideoItem> items = new ArrayList<VideoItem>();
-
-            for(PlaylistItem result:results){
-                VideoItem item = new VideoItem();
-                item.setTitle(result.getSnippet().getTitle());
-                item.setDate(result.getSnippet().getPublishedAt().getValue());
-                item.setDescription(result.getSnippet().getDescription());
-                if(result.getSnippet().getThumbnails() != null){
-                    item.setThumbnailURL(result.getSnippet().getThumbnails().getDefault().getUrl());
-                }else{
-                    item.setThumbnailURL("");
-                }
-                item.setId(result.getSnippet().getResourceId().getVideoId());
-                items.add(item);
-            }
-            return items;
-        }catch(IOException e){
-            Log.d(DEBUG_TAG, "Could not search: "+e);
-            return new ArrayList<>();
         }
     }
     private String timeHumanReadable(String youtubeTimeFormat){
