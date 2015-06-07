@@ -1,16 +1,25 @@
 package info.goodline.utubewatcher.animation;
 
-/**
- * Created by Балдин Сергей on 20.05.2015.
- */
 
 import android.view.View;
 import android.view.animation.Animation;
 import android.view.animation.Transformation;
 
+/**
+ * Drop Down Animation for search video input
+ */
 public class DropDownAnim extends Animation {
+    /**
+     * Height which View will have after animation
+     */
     private final int targetHeight;
+    /**
+     *  Animated view
+     */
     private final View view;
+    /**
+     * Direction of animation
+     */
     private  boolean down;
 
     public DropDownAnim(View view, int targetHeight, boolean down) {

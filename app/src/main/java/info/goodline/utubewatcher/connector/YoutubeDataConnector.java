@@ -25,7 +25,10 @@ import info.goodline.utubewatcher.data.VideoItem;
 import info.goodline.utubewatcher.R;
 import info.goodline.utubewatcher.util.DeveloperKey;
 
-
+/**
+ *  Class for searching video via YouTube API V3
+ *  @author  Sergey Baldin
+ */
 public class YoutubeDataConnector {
     private static final String NEXT_PAGE_STATE = "YoutubeDataConnector.NEXT_PAGE_STATE";
     private static final String PREV_PAGE_STATE =  "YoutubeDataConnector.PREV_PAGE_STATE";
@@ -151,7 +154,11 @@ public class YoutubeDataConnector {
                 item.setTitle(result.getSnippet().getTitle());
                 item.setDate(result.getSnippet().getPublishedAt().getValue());
                 item.setDescription(result.getSnippet().getDescription());
-                item.setThumbnailURL(result.getSnippet().getThumbnails().getDefault().getUrl());
+                if(result.getSnippet().getThumbnails() != null){
+                    item.setThumbnailURL(result.getSnippet().getThumbnails().getDefault().getUrl());
+                }else{
+                    item.setThumbnailURL("");
+                }
                 item.setId(result.getSnippet().getResourceId().getVideoId());
                 items.add(item);
             }

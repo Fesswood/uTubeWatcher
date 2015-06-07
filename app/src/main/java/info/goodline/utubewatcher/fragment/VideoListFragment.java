@@ -117,7 +117,7 @@ public class VideoListFragment extends Fragment {
     private void restoreInstanceState(@Nullable Bundle savedInstanceState) {
         mSearchResults =(ArrayList) savedInstanceState.getSerializable(VIDEO_LIST_SAVE_STATE);
         if (mSearchResults != null && mSearchResults.size()>0) {
-            mVideoListAdapter.addNewslist(mSearchResults);
+            mVideoListAdapter.addVideoItemList(mSearchResults);
             mVideosListView.setAdapter(mVideoListAdapter);
             if(mIsFirstUpdate){
                 initializeInfinityScroll();
@@ -273,7 +273,7 @@ public class VideoListFragment extends Fragment {
                         mHandler.post(new Runnable() {
                             public void run() {
                                 if (mSearchResults != null && mSearchResults.size() > 0) {
-                                    mVideoListAdapter.addNewslist((ArrayList) mSearchResults);
+                                    mVideoListAdapter.addVideoItemList((ArrayList) mSearchResults);
                                 } else {
                                     Toast.makeText(getActivity(), "Видеоролики закончились", Toast.LENGTH_SHORT).show();
                                 }
@@ -304,7 +304,7 @@ public class VideoListFragment extends Fragment {
 
     private void updateVideosFound() {
         mVideoListAdapter.clear();
-        mVideoListAdapter.addNewslist((ArrayList) mSearchResults);
+        mVideoListAdapter.addVideoItemList((ArrayList) mSearchResults);
         if(mIsFirstUpdate){
             initializeInfinityScroll();
             mIsFirstUpdate =false;
