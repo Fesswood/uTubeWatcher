@@ -8,4 +8,5 @@
     <string name="action_search">искать видео</string>
     <string name="action_to_top">Пролистать наверх</string>
     <string name="action_to_bottom">Пролистать Вниз</string>
+    <string name="end_of_playlist">Видеоролики закончились</string>
 </resources>

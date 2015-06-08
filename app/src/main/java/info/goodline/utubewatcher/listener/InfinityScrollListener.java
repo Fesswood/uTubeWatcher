@@ -3,14 +3,23 @@ package info.goodline.utubewatcher.listener;
 import android.widget.AbsListView;
 
 /**
- * Created by Балдин Сергей on 25.05.2015.
+ *  abstract Listener for loading data while user scrolling listView
  */
 public abstract class InfinityScrollListener  implements AbsListView.OnScrollListener
 {
-    private int itemsOffset      = 5;    // за сколько значений до конца списка начать  отображать
+    /**
+     * Offset while method {@link #loadMore(int, int)} will call
+     */
+    private int itemsOffset      = 5;
+    /**
+     * items by one load operation
+     */
     private long bufferItemCount  = 10;
     private int currentPage   = 0;
     private int itemCount    = 0;
+    /**
+     * flag indicates current state of loading process
+     */
     private boolean isLoading   = true;
 
 
@@ -24,7 +33,7 @@ public abstract class InfinityScrollListener  implements AbsListView.OnScrollLis
     @Override
     public void onScrollStateChanged(AbsListView view, int scrollState)
     {
-// Do Nothing
+        // Do Nothing
     }
 
     @Override

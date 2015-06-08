@@ -1,7 +1,7 @@
 package info.goodline.utubewatcher.listener;
 
 /**
- * Created by sergeyb on 29.05.15.
+ * Interface for providing click hardware back button to fragment
  */
 public interface OnBackPressedListener {
     public void doBack();

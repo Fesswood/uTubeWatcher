@@ -26,7 +26,7 @@ import info.goodline.utubewatcher.util.DeveloperKey;
  *  {@link VideoListFragment} extends this class and add search function for it
  *  @author  Sergey Baldin
  */
-public class BaseFragment extends Fragment {
+public class BaseFragment extends Fragment implements YouTubePlayer.OnInitializedListener {
 
     private static final int RECOVERY_DIALOG_REQUEST = 1;
 
@@ -34,8 +34,13 @@ public class BaseFragment extends Fragment {
     protected YouTubePlayer mYoutubePlayer;
     protected VideoDescFragment mMovieDescFragment;
     protected DraggablePanel mDraggablePanel;
-
+    /**
+     * Indicates success initializing of youtube player
+     */
     protected boolean mIsPlayerInitializeSuccess=false;
+    /**
+     * Indicates current state of Draggable panel
+     */
     protected boolean mIsDraggablePanelMaximized=false;
     private View mRootView;
 
@@ -64,38 +69,37 @@ public class BaseFragment extends Fragment {
         mRootView =rootView;
     }
 
+    /**
+     * initialize YoutubeFragment like a {@link YouTubePlayerSupportFragment}
+     */
     protected void initializeYoutubeFragment() {
-
         mYoutubeFragment = new YouTubePlayerSupportFragment();
-        mYoutubeFragment.initialize(DeveloperKey.DEVELOPER_KEY, new YouTubePlayer.OnInitializedListener() {
-
-            @Override
-            public void onInitializationSuccess(YouTubePlayer.Provider provider,
-                                                YouTubePlayer player, boolean wasRestored) {
-                if (!wasRestored) {
-                    mYoutubePlayer = player;
-                    mYoutubePlayer.setShowFullscreenButton(true);
-                    mIsPlayerInitializeSuccess = true;
-                }
-
-            }
-
-            @Override
-            public void onInitializationFailure(YouTubePlayer.Provider provider,
-                                                YouTubeInitializationResult errorReason) {
-
-                if (errorReason.isUserRecoverableError()) {
-                    errorReason.getErrorDialog(getActivity(), RECOVERY_DIALOG_REQUEST).show();
-                } else {
-                    String errorMessage = String.format(
-                            "There was an error initializing the YouTubePlayer (%1$s)",
-                            errorReason.toString());
-                    Toast.makeText(getActivity(), errorMessage, Toast.LENGTH_LONG).show();
-                }
-            }
-        });
+        mYoutubeFragment.initialize(DeveloperKey.DEVELOPER_KEY, this);
+    }
+    @Override
+    public void onInitializationSuccess(YouTubePlayer.Provider provider, YouTubePlayer youTubePlayer, boolean wasRestored) {
+        if (!wasRestored) {
+            mYoutubePlayer = youTubePlayer;
+            mYoutubePlayer.setShowFullscreenButton(true);
+            mIsPlayerInitializeSuccess = true;
+        }
     }
 
+    @Override
+    public void onInitializationFailure(YouTubePlayer.Provider provider, YouTubeInitializationResult errorReason) {
+        if (errorReason.isUserRecoverableError()) {
+            errorReason.getErrorDialog(getActivity(), RECOVERY_DIALOG_REQUEST).show();
+        } else {
+            String errorMessage = String.format(
+                    "There was an error initializing the YouTubePlayer (%1$s)",
+                    errorReason.toString());
+            Toast.makeText(getActivity(), errorMessage, Toast.LENGTH_LONG).show();
+        }
+    }
+    /**
+     * Initialize DraggablePanel and sets to top frame {@link #mYoutubeFragment}
+     * and to bottom frame {@link #mMovieDescFragment}
+     */
     private void initializeDraggablePanel() {
         mDraggablePanel.setFragmentManager(getActivity().getSupportFragmentManager());
         mDraggablePanel.setTopFragment(mYoutubeFragment);
@@ -106,7 +110,9 @@ public class BaseFragment extends Fragment {
         mDraggablePanel.initializeView();
 
     }
-
+    /**
+     * Sets listener for hooking draggable states
+     */
     private void hookDraggablePanelListeners() {
         mDraggablePanel.setDraggableListener(new DraggableListener() {
             @Override
@@ -145,6 +151,7 @@ public class BaseFragment extends Fragment {
             mYoutubePlayer.play();
         }
     }
+
 
 
 }

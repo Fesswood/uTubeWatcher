@@ -40,8 +40,12 @@ import info.goodline.utubewatcher.util.DraggableState;
 import info.goodline.utubewatcher.connector.YoutubeDataConnector;
 
 
-
-public class VideoListFragment extends BaseFragment {
+/**
+ *  Fragment shows video list, provides controls for searching and showing selected video
+ *  Draggable panel initilaze in {@link BaseFragment}
+ *  @author  Sergey Baldin
+ */
+public class VideoListFragment extends BaseFragment implements TextView.OnEditorActionListener, AdapterView.OnItemClickListener {
 
     private static final String STATE_IS_PLAYING = "isPlayingState";
     public static final String VIDEO_LIST_SAVE_STATE="videoListSaveState";
@@ -77,8 +81,10 @@ public class VideoListFragment extends BaseFragment {
                              Bundle savedInstanceState) {
 
         View inflateView = inflater.inflate(R.layout.fragment_video_list, container, false);
+        // initialize parent's draggable view
         super.setRootView(inflateView);
         super.initializeBaseFragment();
+
         mLinearLayout     = (LinearLayout) inflateView.findViewById(R.id.search_layout);
         mSearchInput      = (MaterialEditText) inflateView.findViewById(R.id.search_input);
         mVideosListView   = (ListView) inflateView.findViewById(R.id.videos_found);
@@ -100,8 +106,8 @@ public class VideoListFragment extends BaseFragment {
         mVideosListView.setAdapter(mVideoListAdapter);
         mHandler = new Handler();
 
-        searchInputActionListenerHandle();
-        handleVideosListItemClickListener();
+        mSearchInput.setOnEditorActionListener(this);
+        mVideosListView.setOnItemClickListener(this);
 
         if (savedInstanceState != null) {
             restoreInstanceState(savedInstanceState);
@@ -110,6 +116,11 @@ public class VideoListFragment extends BaseFragment {
         }
         return inflateView;
     }
+
+    /**
+     * Restore State of current playing video and seacrh results
+     * @param savedInstanceState
+     */
     private void restoreInstanceState(@Nullable Bundle savedInstanceState) {
         mSearchResults =(ArrayList) savedInstanceState.getSerializable(VIDEO_LIST_SAVE_STATE);
         if (mSearchResults != null && mSearchResults.size()>0) {
@@ -129,6 +140,7 @@ public class VideoListFragment extends BaseFragment {
         if(mDraggablePanelState != null){
             new Thread(){
                 public void run(){
+                    // await while mYoutubePlayer and mMovieDescFragment will be not null
                     while(true){
                         if(mYoutubePlayer != null && mMovieDescFragment.isInitialized()){
 
@@ -139,7 +151,7 @@ public class VideoListFragment extends BaseFragment {
                                 mYoutubePlayer.loadVideo(videoItem.getId());
 
                             }
-
+                            // if there was selected video shows it to user again
                             mHandler.post(new Runnable() {
                                 public void run() {
                                     if(DraggableState.MAXIMIZED ==  mDraggablePanelState ){
@@ -180,6 +192,7 @@ public class VideoListFragment extends BaseFragment {
         }
 
     }
+
     @Override
     public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
         inflater.inflate(R.menu.menu_video_list, menu);
@@ -215,9 +228,11 @@ public class VideoListFragment extends BaseFragment {
         mYoutubePlayer=null;
         mBackPresedListener=null;
     }
+
     @Override
     public void onActivityResult(int requestCode, int resultCode,
                                  Intent data) {
+        //take results of speech request and search relative videos
         if (requestCode == SPEECH_REQUEST_CODE && resultCode == getActivity().RESULT_OK) {
             List<String> results = data.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS);
             String spokenText = results.get(0);
@@ -227,32 +242,35 @@ public class VideoListFragment extends BaseFragment {
         super.onActivityResult(requestCode, resultCode, data);
     }
 
-    private void searchInputActionListenerHandle() {
-        mSearchInput.setOnEditorActionListener(new TextView.OnEditorActionListener() {
-            @Override
-            public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
-                final boolean isEnterEvent = event != null
-                        && event.getKeyCode() == KeyEvent.KEYCODE_ENTER;
-                final boolean isEnterUpEvent = isEnterEvent && event.getAction() == KeyEvent.ACTION_UP;
-                final boolean isEnterDownEvent = isEnterEvent && event.getAction() == KeyEvent.ACTION_DOWN;
+    /**
+     * Handle user input keywords
+     */
+    @Override
+    public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
+        // add to keyEvent also enter to debug via emulator
+        final boolean isEnterEvent = event != null
+                && event.getKeyCode() == KeyEvent.KEYCODE_ENTER;
+        final boolean isEnterUpEvent = isEnterEvent && event.getAction() == KeyEvent.ACTION_UP;
+        final boolean isEnterDownEvent = isEnterEvent && event.getAction() == KeyEvent.ACTION_DOWN;
 
-                if (actionId == EditorInfo.IME_ACTION_DONE || actionId == EditorInfo.IME_ACTION_NEXT || isEnterUpEvent) {
-                    // Do your action here
-                    searchOnYoutube(v.getText().toString());
-                    return true;
-                } else if (isEnterDownEvent) {
-                    searchOnYoutube(v.getText().toString());
-                    // Capture this event to receive ACTION_UP
-                    return true;
-                } else {
-                    // We do not care on other actions
-                    return false;
-                }
+        if (actionId == EditorInfo.IME_ACTION_DONE || actionId == EditorInfo.IME_ACTION_NEXT || isEnterUpEvent) {
+            // Do your action here
+            searchOnYoutube(v.getText().toString());
+            return true;
+        } else if (isEnterDownEvent) {
+            searchOnYoutube(v.getText().toString());
+            // Capture this event to receive ACTION_UP
+            return true;
+        } else {
+            // We do not care on other actions
+            return false;
+        }
 
-            }
-        });
     }
 
+    /**
+     * make request for oldest video while it exists and add it to listView
+     */
     private void initializeInfinityScroll() {
         mVideosListView.setOnScrollListener(new InfinityScrollListener(mYoutubeDataConnector.getResultSetSize()) {
             @Override
@@ -265,7 +283,7 @@ public class VideoListFragment extends BaseFragment {
                                 if (mSearchResults != null && mSearchResults.size() > 0) {
                                     mVideoListAdapter.addVideoItemList((ArrayList) mSearchResults);
                                 } else {
-                                    Toast.makeText(getActivity(), "Видеоролики закончились", Toast.LENGTH_SHORT).show();
+                                    Toast.makeText(getActivity(), R.string.end_of_playlist, Toast.LENGTH_SHORT).show();
                                 }
                             }
                         });
@@ -275,6 +293,10 @@ public class VideoListFragment extends BaseFragment {
         });
     }
 
+    /**
+     * Search videos on youtube by input keywords
+     * @param keywords
+     */
     private void searchOnYoutube(@Nullable final String keywords){
         new Thread(){
             public void run(){
@@ -292,6 +314,10 @@ public class VideoListFragment extends BaseFragment {
         }.start();
     }
 
+    /**
+     * At the first call initialize infinity scroll after
+     *  just adds video items to list view
+     */
     private void updateVideosFound() {
         mVideoListAdapter.clear();
         mVideoListAdapter.addVideoItemList((ArrayList) mSearchResults);
@@ -301,30 +327,9 @@ public class VideoListFragment extends BaseFragment {
         }
     }
 
-    private void handleVideosListItemClickListener() {
-        mVideosListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-
-            @Override
-            public void onItemClick(AdapterView<?> av, View v, int pos, long id) {
-
-                VideoItem videoItem = mVideoListAdapter.getItem(pos);
-
-
-                if (mYoutubePlayer == null) {
-                    VideoListFragment.super.initializeYoutubeFragment();
-                } else {
-                    mYoutubePlayer.loadVideo(videoItem.getId());
-                }
-                if (mDraggablePanel.getVisibility() != View.VISIBLE) {
-                    mDraggablePanel.setVisibility(View.VISIBLE);
-                }
-                mMovieDescFragment.setVideoItem(videoItem, mYoutubeDataConnector);
-                mDraggablePanel.maximize();
-            }
-
-        });
-    }
-
+    /**
+     * Show or hide layout with inputTextView when user click on actionbar button
+     */
     private void handleSearchLayoutAnimation() {
         int TargetHeight = 0;
         if(isNeedShowSearchLayout){
@@ -359,6 +364,9 @@ public class VideoListFragment extends BaseFragment {
 
     }
 
+    /**
+     * Display activity with speech recognizer
+     */
     private void displaySpeechRecognizer() {
         Intent intent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
         intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL,
@@ -366,7 +374,23 @@ public class VideoListFragment extends BaseFragment {
         startActivityForResult(intent, SPEECH_REQUEST_CODE);
     }
 
+    /**
+     * handle click on video item in ListView
+     */
+    @Override
+    public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
 
+        VideoItem videoItem = mVideoListAdapter.getItem(position);
 
-
+        if (mYoutubePlayer == null) {
+            VideoListFragment.super.initializeYoutubeFragment();
+        } else {
+            mYoutubePlayer.loadVideo(videoItem.getId());
+        }
+        if (mDraggablePanel.getVisibility() != View.VISIBLE) {
+            mDraggablePanel.setVisibility(View.VISIBLE);
+        }
+        mMovieDescFragment.setVideoItem(videoItem, mYoutubeDataConnector);
+        mDraggablePanel.maximize();
+    }
 }

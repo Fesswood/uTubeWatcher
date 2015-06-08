@@ -9,7 +9,7 @@ import com.github.pedrovgs.DraggablePanel;
 import java.io.Serializable;
 
 /**
- * Created by Балдин Сергей on 22.05.2015.
+ * Enumeration for saving current state of Draggable parents
  */
 public enum DraggableState implements Serializable {
 
