@@ -1,2 +1,2 @@
 <?xml version="1.0" encoding="utf-8"?>
-<merger version="3"><dataSet config="main"><source path="C:\androidProjects\FromGitHub\UTubeWatcher\draggablepanel\src\main\assets"/></dataSet><dataSet config="debug"><source path="C:\androidProjects\FromGitHub\UTubeWatcher\draggablepanel\src\debug\assets"/></dataSet></merger>
+<merger version="3"><dataSet config="main"><source path="/home/sergeyb/StudioProjects/test/uTubeWatcher/draggablepanel/src/main/assets"/></dataSet><dataSet config="debug"><source path="/home/sergeyb/StudioProjects/test/uTubeWatcher/draggablepanel/src/debug/assets"/></dataSet></merger>

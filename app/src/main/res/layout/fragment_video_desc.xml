@@ -5,7 +5,7 @@
               android:layout_width="match_parent"
               android:layout_height="match_parent"
               android:orientation="vertical"
-              tools:context="info.goodline.utubewatcher.fragment.PlayerFragment"
+              tools:context="info.goodline.utubewatcher.fragment.VideoDescFragment"
               card_view:cardBackgroundColor="@color/icons"
               android:background="@color/icons">
 

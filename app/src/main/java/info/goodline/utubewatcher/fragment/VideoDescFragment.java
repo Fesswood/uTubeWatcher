@@ -12,10 +12,16 @@ import info.goodline.utubewatcher.R;
 import info.goodline.utubewatcher.data.VideoItem;
 import info.goodline.utubewatcher.connector.YoutubeDataConnector;
 
+/**
+ *  Fragments shows video description in bottom frame of DraggablePanel
+ *  @author  Sergey Baldin
+ */
+public class VideoDescFragment extends Fragment {
 
-public class PlayerFragment extends Fragment {
-
-    public static final String VIDEO_TAG = "VideoSaveState";
+    public static final String VIDEO_TAG = "VideoDescFragment.VideoSaveState";
+    /**
+     * Item with description for displaying
+     */
     private VideoItem mVideoItem;
 
     private TextView mVideoTitleBigTextView;
@@ -25,7 +31,7 @@ public class PlayerFragment extends Fragment {
 
     private Handler mDescHandler;
 
-    public PlayerFragment() {
+    public VideoDescFragment() {
     }
 
     @Override
@@ -57,6 +63,11 @@ public class PlayerFragment extends Fragment {
 
     }
 
+    /**
+     * Handle items with empty information of duration and counts view
+     * @param videoItem item for specified empty fields
+     * @param utube instance of current YoutubeDataConnector
+     */
     private void handleEmptyViewAndDuration(final VideoItem videoItem, final YoutubeDataConnector utube) {
         if(videoItem.getViewCounts() == null || videoItem.getDuration() == null){
             mTimeTextView.setText("Подгружаем...");
@@ -91,7 +102,7 @@ public class PlayerFragment extends Fragment {
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
-        View view = inflater.inflate(R.layout.fragment_player, container, false);
+        View view = inflater.inflate(R.layout.fragment_video_desc, container, false);
         mVideoTitleBigTextView =(TextView) view.findViewById(R.id.videoTitleBig);
         mTimeTextView          =(TextView) view.findViewById(R.id.Time);
         mViewsCountTextView    =(TextView) view.findViewById(R.id.viewsCount);
@@ -105,7 +116,9 @@ public class PlayerFragment extends Fragment {
         super.onSaveInstanceState(outState);
 
     }
-
+    /**
+     * Check That all text view was initialize correctly
+     */
     public boolean isInitialized() {
         return mVideoTitleBigTextView != null
                && mTimeTextView       != null

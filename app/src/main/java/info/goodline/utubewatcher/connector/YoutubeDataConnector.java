@@ -64,8 +64,12 @@ public class YoutubeDataConnector {
 
     }
 
+    /**
+     * Search video by keywords
+     * @param keywords Phrase with keywords
+     * @return List with ready to display video items
+     */
     public ArrayList<VideoItem> search(String keywords){
-
         try{
             query = youtube.search().list("id,snippet");
             query.setKey(DeveloperKey.DEVELOPER_KEY);
@@ -90,7 +94,10 @@ public class YoutubeDataConnector {
             return new ArrayList<>();
         }
     }
-
+    /**
+     * Show video items from the default youtube chanel specified by {@link #mDefaultQuery}
+     * @return List with ready to display video items
+     */
     public ArrayList<VideoItem> showLastVideo() {
         try{
             YouTube.PlaylistItems.List queryItemsList = youtube.playlistItems().list("id,snippet");
@@ -114,6 +121,16 @@ public class YoutubeDataConnector {
         }
     }
 
+    /**
+     * Create video items list from list with request result. There are two types of result list
+     * It's List<PlaylistItem> and List<SearchResult>, If you want to create video items from List<PlaylistItem>
+     * you should define param isVideoDescList as true, if you define isVideoDescList as false method
+     * will try to create video item  from List<SearchResult>
+     * Used in methods showLastVideo and search
+     * @param requestResult List with request results
+     * @param isVideoDescList flag to switch type of objects in the list requestResult
+     * @return List with ready to display video items
+     */
     private ArrayList<VideoItem> createVideoItems(List requestResult,boolean isVideoDescList) {
         ArrayList items = new ArrayList<>();
         if(isVideoDescList){
@@ -144,6 +161,11 @@ public class YoutubeDataConnector {
         return items;
     }
 
+    /**
+     * Make request for description, duration and counts of view video
+     * @param Id Id of required video
+     * @return video item with filled fields
+     */
     public VideoItem getDesc(String Id) {
         try{
             queryVideo =  youtube.videos().list("id,snippet,contentDetails,statistics");
@@ -171,6 +193,12 @@ public class YoutubeDataConnector {
             return new VideoItem();
         }
     }
+
+    /**
+     * Parse Youtube time format (PThhHmmMssS) to hh:mm:ss time
+     * @param youtubeTimeFormat Time string with format PThhHmmMssS
+     * @return time string with format hh:mm:ss time
+     */
     private String timeHumanReadable(String youtubeTimeFormat){
     // Gets a PThhHmmMssS time and returns a hh:mm:ss time
 
@@ -244,6 +272,10 @@ public class YoutubeDataConnector {
         return returnString;
     }
 
+    /**
+     * Get next 10 video for current {link #mKeywords} or default chanel {@link #mDefaultQuery}
+     * @return
+     */
     public ArrayList<VideoItem> getNextPage() {
 
         ArrayList<VideoItem> nextPageResult = new ArrayList<>();
@@ -259,23 +291,18 @@ public class YoutubeDataConnector {
         return nextPageResult;
     }
 
-
     public static void saveNextAndPrevPagesState(Bundle outState, YoutubeDataConnector con ) {
-
         outState.putString(NEXT_PAGE_STATE, con.getmNextPageToken());
         outState.putString(PREV_PAGE_STATE,  con.getmPrevPageToken());
     }
+
     public static YoutubeDataConnector recoverNextAndPrevPagesState(Bundle savedInstanceState, Context context) {
-
         YoutubeDataConnector youtubeDataConnector = new YoutubeDataConnector(context);
-
         youtubeDataConnector.setmNextPageToken(savedInstanceState.getString(NEXT_PAGE_STATE));
-
         youtubeDataConnector.setmPrevPageToken(savedInstanceState.getString(PREV_PAGE_STATE));
-
-            return youtubeDataConnector;
-
+        return youtubeDataConnector;
     }
+
     public String getmPrevPageToken() {
         return mPrevPageToken;
     }
