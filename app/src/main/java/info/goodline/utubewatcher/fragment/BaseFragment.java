@@ -1,14 +1,15 @@
 package info.goodline.utubewatcher.fragment;
 
 
+import android.content.pm.ActivityInfo;
+import android.content.res.Configuration;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
-import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.LinearLayout;
 import android.widget.Toast;
-import android.support.v7.app.AppCompatActivity;
 
 import com.github.pedrovgs.DraggableListener;
 import com.github.pedrovgs.DraggablePanel;
@@ -17,8 +18,6 @@ import com.google.android.youtube.player.YouTubePlayer;
 import com.google.android.youtube.player.YouTubePlayerSupportFragment;
 
 import info.goodline.utubewatcher.R;
-import info.goodline.utubewatcher.activity.VideoListActivity;
-import info.goodline.utubewatcher.listener.BaseBackPressedListener;
 import info.goodline.utubewatcher.util.DeveloperKey;
 
 /**
@@ -26,7 +25,7 @@ import info.goodline.utubewatcher.util.DeveloperKey;
  *  {@link VideoListFragment} extends this class and add search function for it
  *  @author  Sergey Baldin
  */
-public class BaseFragment extends Fragment implements YouTubePlayer.OnInitializedListener {
+public class BaseFragment extends Fragment implements YouTubePlayer.OnInitializedListener , YouTubePlayer.OnFullscreenListener{
 
     private static final int RECOVERY_DIALOG_REQUEST = 1;
 
@@ -43,6 +42,7 @@ public class BaseFragment extends Fragment implements YouTubePlayer.OnInitialize
      */
     protected boolean mIsDraggablePanelMaximized=false;
     private View mRootView;
+    private boolean mIsFullscreen;
 
     @Override
     public void onCreate(@Nullable final Bundle savedInstanceState) {
@@ -80,7 +80,9 @@ public class BaseFragment extends Fragment implements YouTubePlayer.OnInitialize
     public void onInitializationSuccess(YouTubePlayer.Provider provider, YouTubePlayer youTubePlayer, boolean wasRestored) {
         if (!wasRestored) {
             mYoutubePlayer = youTubePlayer;
+            mYoutubePlayer.setFullscreenControlFlags(YouTubePlayer.FULLSCREEN_FLAG_ALWAYS_FULLSCREEN_IN_LANDSCAPE | YouTubePlayer.FULLSCREEN_FLAG_CONTROL_ORIENTATION );
             mYoutubePlayer.setShowFullscreenButton(true);
+            mYoutubePlayer.setOnFullscreenListener(this);
             mIsPlayerInitializeSuccess = true;
         }
     }
@@ -153,5 +155,11 @@ public class BaseFragment extends Fragment implements YouTubePlayer.OnInitialize
     }
 
 
-
+    @Override
+    public void onFullscreen(boolean isFullscreenEnabled) {
+        mIsFullscreen = isFullscreenEnabled;
+       if(!mIsFullscreen){
+           getActivity().setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+       }
+    }
 }

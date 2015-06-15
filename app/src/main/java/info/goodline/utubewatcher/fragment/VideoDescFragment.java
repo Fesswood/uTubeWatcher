@@ -70,8 +70,8 @@ public class VideoDescFragment extends Fragment {
      */
     private void handleEmptyViewAndDuration(final VideoItem videoItem, final YoutubeDataConnector utube) {
         if(videoItem.getViewCounts() == null || videoItem.getDuration() == null){
-            mTimeTextView.setText("Подгружаем...");
-            mViewsCountTextView.setText("Подгружаем...");
+            mTimeTextView.setText("...");
+            mViewsCountTextView.setText("...");
 
             new Thread(
                     new Runnable() {
